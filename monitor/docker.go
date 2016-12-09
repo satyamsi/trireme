@@ -549,12 +549,12 @@ func (d *dockerMonitor) handleDestroyEvent(event *events.Message) error {
 		log.WithFields(log.Fields{
 			"package": "monitor",
 			"error":   err.Error(),
-		}).Debug("Error getting ContextID")
+		}).Error("Error getting ContextID")
 
 		return fmt.Errorf("Error Generating ContextID: %s", err)
 	}
 
-	d.collector.CollectContainerEvent(contextID, "", nil, collector.UnknownContainerDelete)
+	d.collector.CollectContainerEvent(contextID, "", nil, collector.ContainerDelete)
 	// Send the event upstream
 	errChan := d.puHandler.HandlePUEvent(contextID, EventDestroy)
 	return <-errChan
