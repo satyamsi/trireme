@@ -1,6 +1,6 @@
 //Package remenforcer  :: This is the implementation of the RPC client
 //It implementes the interface PolicyEnforcer and forwards these requests to the actual enforcer
-package remenforcer
+package enforcerproxy
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 	"github.com/aporeto-inc/trireme/enforcer/utils/rpcwrapper"
 	"github.com/aporeto-inc/trireme/enforcer/utils/tokens"
 	"github.com/aporeto-inc/trireme/policy"
-	"github.com/aporeto-inc/trireme/remote/launch"
+	"github.com/aporeto-inc/trireme/processmon"
 )
 
 //ErrFailedtoLaunch exported
@@ -79,12 +79,11 @@ func (s *launcherState) Enforce(contextID string, puInfo *policy.PUInfo) error {
 	if _, ok := s.initDone[contextID]; !ok {
 		s.InitRemoteEnforcer(contextID, puInfo)
 	}
-	request := &rpcwrapper.Request{}
 
+	request := &rpcwrapper.Request{}
 	enfResp := &rpcwrapper.Response{}
 	enfReq := &rpcwrapper.EnforcePayload{}
 	enfReq.ContextID = contextID
-	//enfReq.PuPolicy = puInfo.Policy
 	enfReq.ManagementID = puInfo.Policy.ManagementID
 	enfReq.TriremeAction = puInfo.Policy.TriremeAction
 	enfReq.IngressACLs = puInfo.Policy.IngressACLs()
@@ -100,7 +99,7 @@ func (s *launcherState) Enforce(contextID string, puInfo *policy.PUInfo) error {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"package": "enforcerLauncher",
-			"error":   err,
+			"error":   err.Error(),
 		}).Fatal("Failed to Enforce remote enforcer")
 		return ErrEnforceFailed
 	}

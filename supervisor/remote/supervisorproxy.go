@@ -1,6 +1,6 @@
-//remsupervisor package implements the supervisor interface and forwards the requests on this interface
+//Package remsupervisor package implements the supervisor interface and forwards the requests on this interface
 // to the remote enforcer
-package remsupervisor
+package supervisorproxy
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/aporeto-inc/trireme/enforcer/utils/rpcwrapper"
 
 	"github.com/aporeto-inc/trireme/policy"
-	"github.com/aporeto-inc/trireme/remote/launch"
+	"github.com/aporeto-inc/trireme/processmon"
 	"github.com/aporeto-inc/trireme/supervisor"
 	"github.com/aporeto-inc/trireme/supervisor/iptablesutils"
 )
@@ -80,6 +80,7 @@ func (s *RemoteSupervisorHandle) Unsupervise(contextID string) error {
 		s.prochdl.KillProcess(contextID)
 
 	}
+	//We expect no failure here
 	return nil
 }
 

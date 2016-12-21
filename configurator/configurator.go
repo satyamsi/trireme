@@ -13,12 +13,11 @@ import (
 	"github.com/aporeto-inc/trireme/enforcer/utils/tokens"
 	"github.com/aporeto-inc/trireme/supervisor/iptablesutils"
 
-	"github.com/aporeto-inc/trireme/supervisor/remote"
-
 	"github.com/aporeto-inc/trireme/enforcer/remote"
 	"github.com/aporeto-inc/trireme/enforcer/utils/rpcwrapper"
 	"github.com/aporeto-inc/trireme/monitor"
 	"github.com/aporeto-inc/trireme/supervisor"
+	"github.com/aporeto-inc/trireme/supervisor/remote"
 
 	"github.com/aporeto-inc/trireme/supervisor/provider"
 )
@@ -90,7 +89,7 @@ func NewTriremeWithDockerMonitor(
 	}
 
 	if remoteEnforcer {
-		//processmonitor := ProcessMon.NewProcessMon()
+		//Create a new enforcerproxy & supervisorproxy
 		rpcwrapper := rpcwrapper.NewRPCWrapper()
 		ipt, err := provider.NewGoIPTablesProvider()
 		if err != nil {
@@ -102,8 +101,8 @@ func NewTriremeWithDockerMonitor(
 		}
 
 		ipu := iptablesutils.NewIptableUtils(ipt, false)
-		e := remenforcer.NewDefaultDatapathEnforcer(serverID, eventCollector, secrets, rpcwrapper)
-		IPTsupervisor, err := remsupervisor.NewIPTablesSupervisor(eventCollector, e, ipu, networks, rpcwrapper)
+		e := enforcerproxy.NewDefaultDatapathEnforcer(serverID, eventCollector, secrets, rpcwrapper)
+		IPTsupervisor, err := supervisorproxy.NewIPTablesSupervisor(eventCollector, e, ipu, networks, rpcwrapper)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"package": "configurator",

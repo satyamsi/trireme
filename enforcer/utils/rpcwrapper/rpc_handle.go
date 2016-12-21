@@ -16,6 +16,10 @@ import (
 	"github.com/aporeto-inc/trireme/cache"
 )
 
+const (
+	maxRetries = 100
+)
+
 //RPCHdl is a per client handle
 type RPCHdl struct {
 	Client  *rpc.Client
@@ -34,10 +38,6 @@ func NewRPCWrapper() *RPCWrapper {
 	rpcwrapper.rpcClientMap = cache.NewCache(nil)
 	return rpcwrapper
 }
-
-const (
-	maxRetries = 100
-)
 
 //NewRPCClient exported
 //Will worry about locking later ... there is a small case where two callers

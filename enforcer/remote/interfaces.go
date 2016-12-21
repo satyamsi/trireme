@@ -1,4 +1,4 @@
-package remenforcer
+package enforcerproxy
 
 //keyPEM is a private interface required by the enforcerlauncher to expose method not exposed by the
 //PolicyEnforcer interface

@@ -1,4 +1,4 @@
-package remsupervisor
+package supervisorproxy
 
 import (
 	"sync"
