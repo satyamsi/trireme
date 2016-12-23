@@ -47,7 +47,36 @@ type collectorentry struct {
 	entry      *enforcer.StatsPayload
 }
 
-//CollectFlowEvent expoted
+//Server : This is the structure for maintaining state required by the remote enforcer.
+//It is cache of variables passed by th controller to the remote enforcer and other handles
+//required by the remote enforcer to talk to the external processes
+type Server struct {
+	MutualAuth  bool
+	Validity    time.Duration
+	SecretType  tokens.SecretsType
+	ContextID   string
+	CAPEM       []byte
+	PublicPEM   []byte
+	PrivatePEM  []byte
+	StatsClient *rpcwrapper.RPCWrapper
+	Enforcer    enforcer.PolicyEnforcer
+	Collector   collector.EventCollector
+	Supervisor  supervisor.Supervisor
+	pupolicy    *policy.PUPolicy
+	rpcchannel  string
+	rpchdl      *rpcwrapper.RPCWrapper
+}
+
+//StatsClient  This is the struct for storing state for the rpc client
+//which reports flow stats back to the controller process
+type StatsClient struct {
+	collector *CollectorImpl
+	server    *Server
+	FlowCache *cache.Cache
+	Rpchdl    *rpcwrapper.RPCWrapper
+}
+
+//CollectFlowEvent collects a new flow event and adds it to a local list it shares with SendStats
 func (c *CollectorImpl) CollectFlowEvent(contextID string, tags *policy.TagsMap, action string, mode string, sourceID string, tcpPacket *packet.Packet) {
 
 	l4FlowHash := tcpPacket.L4FlowHash()
@@ -74,35 +103,6 @@ func (c *CollectorImpl) CollectContainerEvent(contextID string, ip string, tags 
 	log.WithFields(log.Fields{"package": "remoteEnforcer",
 		"Msg": "Unexpected call to CollectContainer Event",
 	}).Error("Received a container event in Remote Enforcer ")
-}
-
-//Server : This is the structure for maintaining state required by the remote enforcer.
-//It is cache of variables passed by th controller to the remote enforcer and other handles
-//required by the remote enforcer to talk to the external processes
-type Server struct {
-	MutualAuth  bool
-	Validity    time.Duration
-	SecretType  tokens.SecretsType
-	ContextID   string
-	CAPEM       []byte
-	PublicPEM   []byte
-	PrivatePEM  []byte
-	pupolicy    *policy.PUPolicy
-	rpcchannel  string
-	rpchdl      *rpcwrapper.RPCWrapper
-	StatsClient *rpcwrapper.RPCWrapper
-	Enforcer    enforcer.PolicyEnforcer
-	Collector   collector.EventCollector
-	Supervisor  supervisor.Supervisor
-}
-
-//StatsClient  This is the struct for storing state for the rpc client
-//which reports flow stats back to the controller process
-type StatsClient struct {
-	collector *CollectorImpl
-	server    *Server
-	FlowCache *cache.Cache
-	Rpchdl    *rpcwrapper.RPCWrapper
 }
 
 //SendStats  async function which makes a rpc call to send stats every STATS_INTERVAL
@@ -171,7 +171,12 @@ func (s *Server) connectStatsClient(statsClient *StatsClient) error {
 
 //InitEnforcer is a function called from the controller using RPC. It intializes data structure required by the enforcer
 func (s *Server) InitEnforcer(req rpcwrapper.Request, resp *rpcwrapper.Response) error {
-
+	//Check if sucessfully switched namespace
+	nsEnterState := os.Getenv("NSENTER_ERROR_STATE")
+	if len(nsEnterState) == 0 {
+		resp.Status = errors.New(nsEnterState)
+		return resp.Status
+	}
 	collector := &CollectorImpl{cond: &sync.Cond{L: &sync.Mutex{}}}
 	collector.FlowEntries = list.New()
 	s.Collector = collector
