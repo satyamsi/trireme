@@ -10,6 +10,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/aporeto-inc/trireme/collector"
+	"github.com/aporeto-inc/trireme/monitor/utils/cgnetcls"
 	"github.com/aporeto-inc/trireme/policy"
 )
 
@@ -188,7 +189,36 @@ func (s *Server) handleCreateEvent(eventInfo *EventInfo) error {
 
 	// Send the event upstream
 	errChan := s.puHandler.HandlePUEvent(contextID, EventCreate)
-	return <-errChan
+	if nil == <-errChan {
+		//It is okay to launch this so let us create a cgroup for it
+		netcls := cgnetcls.NewCgroupNetController()
+		err = netcls.Creategroup(eventInfo.PUID)
+		if err != nil {
+			log.WithFields(log.Fields{"package": "rpcMonitor",
+				"error": err.Error()}).Info("Error Creating cgroup")
+			return err
+
+		}
+		// TODO - Get a mark id for this cgroup
+		//HardCoded as of now
+		err = netcls.AssignMark(eventInfo.PUID, 1000)
+		if err != nil {
+			log.WithFields(log.Fields{"package": "rpcMonitor",
+				"error": err.Error()}).Info("Error assigning mark value")
+			return err
+
+		}
+		pid, _ := strconv.Atoi(eventInfo.PID)
+		netcls.AddProcess(eventInfo.PUID, pid)
+		if err != nil {
+			log.WithFields(log.Fields{"package": "rpcMonitor",
+				"error": err.Error()}).Info("Error adding process")
+			return err
+
+		}
+	}
+	return nil
+	//	return <-errChan
 }
 
 func (s *Server) handleStartEvent(eventInfo *EventInfo) error {
