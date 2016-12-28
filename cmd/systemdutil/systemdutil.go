@@ -2,20 +2,21 @@ package main
 
 import (
 	"log"
+	"net"
+	"net/rpc/jsonrpc"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
 
-	"github.com/aporeto-inc/trireme/enforcer/utils/rpcwrapper"
 	"github.com/aporeto-inc/trireme/monitor"
 	docopt "github.com/docopt/docopt-go"
 )
 
 const (
-	remoteMethodCall  = "Server.HandleEvent"
-	contextID         = "unused"
-	rpcMonitorChannel = "/var/run/monitor.sock"
+	remoteMethodCall = "Server.HandleEvent"
+	contextID        = "unused"
+	//rpcMonitorChannel = "/var/run/monitor.sock"
 )
 
 func main() {
@@ -46,9 +47,7 @@ Options:
 	}
 	//Make RPC call
 	//In Response i expect a status of OK or !OK
-	aporetoLaunchRPC := rpcwrapper.NewRPCWrapper()
-
-	err := aporetoLaunchRPC.NewRPCClient(contextID, rpcMonitorChannel)
+	client, err := net.Dial("unix", monitor.Rpcaddress)
 	if err != nil {
 		// log.WithFields(log.Fields{"package":"aporetolaunch",
 		// 	"error":err.Error()}).Error("Cannot connect to policy process")
@@ -58,19 +57,21 @@ Options:
 		servicename = command
 	}
 	request := &monitor.EventInfo{
-		PUID: servicename,
-		Name: command,
-		Tags: metadatamap,
-		PID:  strconv.Itoa(os.Getpid()),
+		PUID:      servicename,
+		Name:      command,
+		Tags:      metadatamap,
+		PID:       strconv.Itoa(os.Getpid()),
+		EventType: "create",
 	}
 	response := &monitor.RPCResponse{}
-	//err := aporetoLaunchRPC.RemoteCall(contextID, remoteMethodCall, request, response)
-	rpcClient, _ := aporetoLaunchRPC.GetRPCClient(contextID)
-	rpcClient.Client.Call(remoteMethodCall, request, response)
+
+	rpcClient := jsonrpc.NewClient(client)
+	err = rpcClient.Call(remoteMethodCall, request, response)
 	if err != nil {
 		// log.WithFields(log.Fields{"package":"aporetolaunch",
 		// 	"error":err.Error()}).Error("Remote Call to policy process failed")
-		stderrlogger.Fatalf("Policy Server call failed")
+		stderrlogger.Fatalf("Policy Server call failed %s", err.Error())
+		os.Exit(-1)
 	}
 	if len(response.Error) > 0 {
 		//Policy failed

@@ -104,8 +104,15 @@ func NewRPCMonitor(rpcAddress string, metadataExtractor RPCMetadataExtractor, pu
 // Start starts the RPC monitoring.
 // Blocking, so needs to be started with go...
 func (r *rpcMonitor) Start() error {
+	log.WithFields(log.Fields{"package": "rpcmonitor",
+		"message:": "Starting",
+	}).Info("Starting RPC monitor")
 	listener, err := net.Listen("unix", r.rpcAddress)
 	if err != nil {
+		log.WithFields(log.Fields{"package": "rpcmonitor",
+			"error":    err.Error(),
+			"message:": "Starting",
+		}).Info("Failed RPC monitor")
 		return fmt.Errorf("couldn't create binding: %s", err)
 	}
 	defer listener.Close()

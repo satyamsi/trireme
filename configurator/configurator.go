@@ -111,8 +111,11 @@ func NewTriremeWithDockerMonitor(
 
 		}
 		trireme := trireme.NewTrireme(serverID, resolver, IPTsupervisor, e)
-		monitor := monitor.NewDockerMonitor(DefaultDockerSocketType, DefaultDockerSocket, trireme, nil, eventCollector, syncAtStart)
-		return trireme, monitor, IPTsupervisor.(supervisor.Excluder)
+		dockermonitor := monitor.NewDockerMonitor(DefaultDockerSocketType, DefaultDockerSocket, trireme, nil, eventCollector, syncAtStart)
+		//use rpcmonitor no need to return it since no other consumer for it
+		rpcmonitor, _ := monitor.NewRPCMonitor(monitor.Rpcaddress, nil, trireme, eventCollector)
+		go rpcmonitor.Start()
+		return trireme, dockermonitor, IPTsupervisor.(supervisor.Excluder)
 	}
 
 	enforcer := enforcer.NewDefaultDatapathEnforcer(serverID, eventCollector, nil, secrets)
@@ -127,9 +130,10 @@ func NewTriremeWithDockerMonitor(
 	}
 	trireme := trireme.NewTrireme(serverID, resolver, IPTsupervisor, enforcer)
 
-	monitor := monitor.NewDockerMonitor(DefaultDockerSocketType, DefaultDockerSocket, trireme, dockerMetadataExtractor, eventCollector, syncAtStart)
-
-	return trireme, monitor, IPTsupervisor.(supervisor.Excluder)
+	dockermonitor := monitor.NewDockerMonitor(DefaultDockerSocketType, DefaultDockerSocket, trireme, dockerMetadataExtractor, eventCollector, syncAtStart)
+	rpcmonitor, _ := monitor.NewRPCMonitor(monitor.Rpcaddress, nil, trireme, eventCollector)
+	go rpcmonitor.Start()
+	return trireme, dockermonitor, IPTsupervisor.(supervisor.Excluder)
 
 }
 

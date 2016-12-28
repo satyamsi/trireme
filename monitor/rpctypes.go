@@ -1,5 +1,9 @@
 package monitor
 
+const (
+	Rpcaddress = "/tmp/monitor.sock"
+)
+
 // EventInfo is a generic structure that defines all the information related to a PU event.
 // EventInfo should be used as a normalized struct container that
 type EventInfo struct {
